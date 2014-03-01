@@ -1,7 +1,6 @@
 /**
- * @Author:
+ * @Author: Bruno Alessio Bibbó | Cristo González Rodríguez | Jorge Gómez Weyler
  * Fecha: 27/02/2014
- * E-mail:
  * Descripción: Clase ControlEmbalse - Representa al sistema de control del
  *              embalse y calcula la altura del agua.
  * 
@@ -11,53 +10,83 @@ import java.io.*;
 
 public class ControlEmbalse {
   
-  private double h;
-  private double error;
+  private double altura;
+  private Regla reglas[];
   
-  ControlEmbalse(double altura){
+  ControlEmbalse(double h){
     
-    h = altura;
+    altura = h;
+    
+    reglas = new Regla[3];
+    reglas[0] = new Regla(new ErrorNegativo(), new AperturaCerrar());
+    reglas[1] = new Regla(new ErrorCero(), new AperturaCerrar());
+    reglas[2] = new Regla(new ErrorPositivo(), new AperturaAbrir());
   }
   
-  void controlarAltura(int tiempo, String fichero){
+  void controlarAltura(int tiempo, String fichero) {
     
-    FileWriter fr;
+    FileWriter fw = null;
     double M_en, M_ec, M_ep;
-    double Sum_Max, x, agua;
+    double intervalo = (Deposito.FINAL_APERTURA - Deposito.INICIO_APERTURA) / Deposito.N_PUNTOS; // Tamaño del intervalo entre puntos para el cálculo del centroide
+    double x, vx, sum_x_vx, sum_vx;
+    double error, apertura, agua;
     
     try{
       
-      fr = new FileWriter(fichero);
-      Sum_Max = 0.0;
+      fw = new FileWriter(fichero);
+      fw.write("0\t" + Deposito.H_INICIAL + "\n"); // Se escribe la altura inicial
       
-      // Calcular error:
+      for (int s = 1; s <= tiempo; s++) {
+
+        sum_x_vx = sum_vx = 0.0;
       
-      error = Deposito.H_DESEADA - h;
+        // Calcular error:
       
-      // Calcular funciones (nivel de error):
+        error = Deposito.H_DESEADA - altura;
       
-      M_en = Funcion_error_negativo(error);
-      M_ec = Funcion_error_cero(error);
-      M_ep = Funcion_error_positivo(error);
+        // Calcular funciones (nivel de error):
       
-      // Calcular apertura:
+        M_en = reglas[0].getAntecedente().funcion(error);
+        M_ec = reglas[1].getAntecedente().funcion(error);
+        M_ep = reglas[2].getAntecedente().funcion(error);
       
-      for(int i = 0; i < 10000; i++){
-        x = (i * 0.0125) - 25;
-        Sum_Max += Math.max(Math.max(Math.min(Funcion_apertura_cerrar(x), M_en), Math.min(Funcion_apertura_cerrar(x), M_ec)), Math.min(Funcion_apertura_abrir(x), M_ep));
-      }
+        // Calcular apertura:
         
-      // Calcular nueva altura del agua:
+        for(int i = 0; i <= Deposito.N_PUNTOS; i++) {
+          
+          x = (i * intervalo) + Deposito.INICIO_APERTURA;
+          vx = Math.max(Math.max(Math.min(reglas[0].getConsecuente().funcion(x), M_en), Math.min(reglas[1].getConsecuente().funcion(x), M_ec)), Math.min(reglas[2].getConsecuente().funcion(x), M_ep));
+          sum_x_vx += x*vx;
+          sum_vx += vx;
+        }
+
+        apertura = sum_x_vx / sum_vx;
+        
+        // Calcular nueva altura del agua:
+        
+        agua = (Deposito.W_INPUT * (apertura/100.0)) - Deposito.W_OUTPUT;
+        altura += agua/100.0;
+        
+        // Escribir la altura en el fichero:
+        
+        fw.write(s + "\t" + altura + "\n");
       
-      agua = (Deposito.W_INPUT * (Sum_Max/100)) - Deposito.W_OUTPUT;
+      }
       
-    } catch(IOException ex){
+    } catch(IOException ex1){
       
-      System.out.println(" Error: Inicialización de fichero.");
+      System.out.println("Error: Inicialización de fichero.");
       
-    } finally{
-      
-      fr.close();
+    } finally {
+
+      try {
+        
+        fw.close();
+   
+      } catch (IOException ex2) {
+        
+        System.out.println("Error: Cierre de fichero.");
+      }
     }
   }
   
