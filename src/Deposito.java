@@ -1,4 +1,3 @@
-import java.util.Scanner;
 
 /**
  * @Author: Bruno Alessio Bibbó | Cristo González Rodríguez | Jorge Gómez Weyler
@@ -16,23 +15,15 @@ public class Deposito {
   final static int N_PUNTOS = 10000; // Cantidad de puntos para el cálculo del centroide
   final static double INICIO_APERTURA = -25.0; // Inicio del rango de valores que puede tomar la apertura
   final static double FINAL_APERTURA = 100.0; // Final del rango de valores que puede tomar la apertura
+  final static String FICHERO = "resultados.txt";
   
   public static void main(String[] args) {
     
     /* Sistema de control del depósito */
     ControlEmbalse CE = new ControlEmbalse(H_INICIAL);
     
-    /* Introducción por teclado del nombre del fichero */
-    System.out.print(" Fichero de resultados: ");
-    
-    Scanner sc = new Scanner(System.in);
-    String fichero = sc.nextLine();
-    
     /* Activar el sistema de control durante 'TIEMPO' segundos */
-    CE.controlarAltura(TIEMPO, fichero);
-    
-    sc.close();
-
+    CE.controlarAltura(TIEMPO, FICHERO);
   }
 
 }
